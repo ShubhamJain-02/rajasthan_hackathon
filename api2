@@ -1,0 +1,119 @@
+
+
+#include "YourClass.h"
+
+// Sets default values
+AYourClass::AYourClass()
+{
+    // Set this actor to call Tick() every frame
+    PrimaryActorTick.bCanEverTick = false;
+
+    // Create a text render component
+    ResponseTextComponent = CreateDefaultSubobject<UTextRenderComponent>(TEXT("ResponseText"));
+    ResponseTextComponent->SetupAttachment(RootComponent);
+}
+
+// Called when the game starts or when spawned
+void AYourClass::BeginPlay()
+{
+    Super::BeginPlay();
+}
+
+// Callback function for handling the API response
+void AYourClass::OnAPICallback(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+{
+    if (bWasSuccessful && Response.IsValid())
+    {
+        // Check the HTTP status code
+        if (Response->GetResponseCode() == 200)
+        {
+            // Parse JSON response
+            TSharedPtr<FJsonObject> JsonObject;
+            TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
+
+            if (FJsonSerializer::Deserialize(Reader, JsonObject))
+            {
+                // Handle the parsed JSON data
+                FString Data;
+                JsonObject->TryGetStringField("data_key", Data);
+
+                // Update VR environment based on API response
+                UpdateVREnvironment(Data);
+            }
+            else
+            {
+                UE_LOG(LogTemp, Warning, TEXT("Failed to deserialize JSON response."));
+            }
+        }
+        else
+        {
+            UE_LOG(LogTemp, Warning, TEXT("API request failed with status code: %d"), Response->GetResponseCode());
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("API request failed."));
+    }
+}
+
+// Make a GET API request with optional query parameters
+void AYourClass::MakeGetAPIRequest(const FString& OptionalParameter)
+{
+    // Create an HTTP request
+    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+    Request->SetVerb("GET");
+
+    // Add optional query parameters
+    FString URL = "";//API link
+    if (!OptionalParameter.IsEmpty())
+    {
+        URL += "?optionalParam=" + OptionalParameter;
+    }
+
+    // Add authentication header (if applicable)
+    if (!APIKey.IsEmpty())
+    {
+        Request->SetHeader(TEXT("Authorization"), APIKey);
+    }
+
+    Request->SetURL(URL);
+    Request->OnProcessRequestComplete().BindUObject(this, &AYourClass::OnAPICallback);
+    Request->ProcessRequest();
+}
+
+// Make a POST API request
+void AYourClass::MakePostAPIRequest(const FString& PostData)
+{
+    // Create an HTTP request
+    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+    Request->SetVerb("POST");
+
+    // Add authentication header (if applicable)
+    if (!APIKey.IsEmpty())
+    {
+        Request->SetHeader(TEXT("Authorization"), APIKey);
+    }
+
+    // Set the request URL
+    Request->SetURL("https://api.example.com/post_endpoint");
+
+    // Set the request content (e.g., JSON payload)
+    Request->SetContentAsString(PostData);
+    Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+
+    Request->OnProcessRequestComplete().BindUObject(this, &AYourClass::OnAPICallback);
+    Request->ProcessRequest();
+}
+
+// Function to update the VR environment based on API response
+void AYourClass::UpdateVREnvironment(const FString& Data)
+{
+    // Display the API response in the VR environment
+    if (ResponseTextComponent)
+    {
+        ResponseTextComponent->SetText(FText::FromString("API Response: " + Data));
+    }
+
+    // Implement additional VR-specific logic as needed
+    // For example, update visual elements, trigger events, etc.
+}
