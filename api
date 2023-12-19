@@ -1,0 +1,47 @@
+// YourClass.h
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
+#include "HttpModule.h"
+#include "JsonUtilities/Public/JsonObjectConverter.h"
+#include "Components/TextRenderComponent.h"
+#include "YourClass.generated.h"
+
+UCLASS()
+class YOURPROJECT_API AYourClass : public AActor
+{
+    GENERATED_BODY()
+
+public:
+    // Sets default values for this actor's properties
+    AYourClass();
+
+protected:
+    // Called when the game starts or when spawned
+    virtual void BeginPlay() override;
+
+    // Callback function for handling the API response
+    void OnAPICallback(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+
+public:
+    // Make a GET API request with optional query parameters
+    UFUNCTION(BlueprintCallable, Category = "API")
+    void MakeGetAPIRequest(const FString& OptionalParameter = "");
+
+    // Make a POST API request
+    UFUNCTION(BlueprintCallable, Category = "API")
+    void MakePostAPIRequest(const FString& PostData);
+
+private:
+    // Function to update the VR environment based on API response
+    void UpdateVREnvironment(const FString& Data);
+
+    // Text component to display API response in the VR environment
+    UPROPERTY(VisibleAnywhere)
+    UTextRenderComponent* ResponseTextComponent;
+
+    // API key for authentication (replace with your actual API key)
+    FString APIKey;
+};
